@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+<body>
+    <h1>Chat App</h1>
+    <ul id="messages"></ul>
+    <p id="typing"></p> <!-- this is new -->
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button id="sendBtn">Send</button>
+    </form>
+
+<!-- Right: Users list -->
+  <div>
+    <h3>Online Users</h3>
+    <ul id="users"></ul>
+  </div>
+</div>
+
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io();
+
+   // Ask for nickname when joining
+    const nickname = prompt("Enter your nickname:");
+    socket.emit("set-nickname", nickname);
+
+
+  const form = document.getElementById("form");
+  const sendBtn = document.getElementById("sendBtn");
+  const messageInput = document.getElementById("input");
+  const allMessages = document.getElementById("messages");
+  const typingIndicator = document.getElementById("typing");
+  const usersList = document.getElementById("users");
+
+  // Update users list
+socket.on("users", (users) => {
+  usersList.innerHTML = ""; // clear list
+
+  users.forEach((user) => {
+    if (user && user.trim() !== "") {  // ✅ make sure it's not null/empty
+      const li = document.createElement("li");
+      li.innerText = user;
+      usersList.appendChild(li);
+    }
+  });
+});
+
+
+  socket.on("message" , (message) => {
+    const p = document.createElement("p");
+    p.innerText = message;
+    allMessages.appendChild(p);
+  })
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const message = messageInput.value.trim(); // remove extra spaces
+
+  if (!message) {
+    return; // do nothing if empty or just spaces
+  }
+    // const message = messageInput.value;
+    // console.log(message);
+    socket.emit("user-message" , message);
+    socket.emit("stop-typing"); // stop typing when message is sent
+    messageInput.value = "";
+  })
+
+
+  // Detect typing
+messageInput.addEventListener("input", () => {
+  if (messageInput.value.length > 0) {
+    socket.emit("typing");
+  } else {
+    socket.emit("stop-typing");
+  }
+});
+
+// Show typing indicator
+socket.on("typing", (msg) => {
+  typingIndicator.innerText = msg;
+});
+
+// Hide typing indicator
+socket.on("stop-typing", (msg) => {
+  typingIndicator.innerText = msg;
+});
+</script>
+
+</html>
