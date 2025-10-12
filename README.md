@@ -16,7 +16,7 @@ Features include:
 
 git clone https://github.com/HamzaIshfaq123/chat-app
 
-cd websockets
+cd chat-app
 
 npm install
 
