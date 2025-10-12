@@ -10,6 +10,9 @@
     <ul id="messages"></ul>
     <p id="typing"></p> <!-- this is new -->
     <form id="form" action="">
+      <select id="recipient">
+  <option value="everyone">Everyone</option>
+</select>
       <input id="input" autocomplete="off" /><button id="sendBtn">Send</button>
     </form>
 
@@ -20,14 +23,37 @@
   </div>
 </div>
 
+
+
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script>
   var socket = io();
 
-   // Ask for nickname when joining
+  function addMessage(message, type = "everyone") {
+    console.log("addMessage Function is called...")
+    const p = document.createElement("p");
+    p.innerText = message;
+    allMessages.appendChild(p);
+  }
+
+  // Ask for nickname when joining
     const nickname = prompt("Enter your nickname:");
     socket.emit("set-nickname", nickname);
+  // Send a private message
+  function sendPrivateMessage(toUser, message) {
+  socket.emit("private_message", { to: toUser, message });
+  }
+
+  socket.on("private_message", (data) => {
+  if (data.self) {
+    // Message you sent
+    addMessage(`You (to ${data.to}): ${data.message}`, "private");
+  } else {
+    // Message you received
+    addMessage(`Private from ${data.from}: ${data.message}`, "private");
+  }
+});
 
 
   const form = document.getElementById("form");
@@ -36,6 +62,7 @@
   const allMessages = document.getElementById("messages");
   const typingIndicator = document.getElementById("typing");
   const usersList = document.getElementById("users");
+  const recipientSelect = document.getElementById("recipient");
 
   // Update users list
 socket.on("users", (users) => {
@@ -46,6 +73,15 @@ socket.on("users", (users) => {
       const li = document.createElement("li");
       li.innerText = user;
       usersList.appendChild(li);
+    }
+  });
+  recipientSelect.innerHTML = '<option value="everyone">Everyone</option>';
+  users.forEach((u) => {
+    if (u !== socket.nickname) {
+      const option = document.createElement("option");
+      option.value = u;
+      option.textContent = u;
+      recipientSelect.appendChild(option);
     }
   });
 });
@@ -66,7 +102,16 @@ socket.on("users", (users) => {
   }
     // const message = messageInput.value;
     // console.log(message);
-    socket.emit("user-message" , message);
+    // socket.emit("user-message" , message);
+    console.log(recipientSelect.value)
+     if (recipientSelect.value === "everyone") {
+      console.log("Everyone")
+    socket.emit("user-message", message);
+  } else {
+    console.log("Private")
+    const to = recipientSelect.value;
+    socket.emit("private_message", { to, message });
+  }
     socket.emit("stop-typing"); // stop typing when message is sent
     messageInput.value = "";
   })
