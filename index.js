@@ -72,6 +72,34 @@ io.on('connection', (socket) => {
     
   });
 
+  //For private messaging
+  socket.on("private_message", ({ to, message }) => {
+  const from = socket.nickname;
+
+  // Find the socket ID of the recipient
+  const recipientSocketId = Object.keys(users).find(
+    (id) => users[id] === to
+  );
+
+  if (recipientSocketId) {
+    // Send the message to recipient
+    io.to(recipientSocketId).emit("private_message", {
+      from,
+      message,
+    });
+
+    // (Optional) Also send confirmation to sender
+    socket.emit("private_message", {
+      to,
+      message,
+      self: true,
+    });
+  } else {
+    socket.emit("error_message", `${to} is not online.`);
+  }
+});
+
+
   socket.on("disconnect", () => {
     if (socket.nickname) {
       io.emit("message", `${socket.nickname} has left the chat`);
